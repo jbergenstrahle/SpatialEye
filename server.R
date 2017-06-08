@@ -38,11 +38,11 @@ library(Rtsne)
 options(shiny.maxRequestSize=150*1024^2) 
 
 #OBS OBS OBS just temp commented ! FOR TESTING, UNCOMMENT THIS LATER !
-#sceObjs <<- list() #Global variable for saving of all sceObjects
-#sceObjsPaths <<- list()
-#spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
-#spotDataObjsPaths <<- list()
-#imgScaleObjs <<- list()
+sceObjs <<- list() #Global variable for saving of all sceObjects
+sceObjsPaths <<- list()
+spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
+spotDataObjsPaths <<- list()
+imgScaleObjs <<- list()
 
 
 shinyServer(function(input,output, session) {
