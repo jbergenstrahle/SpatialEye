@@ -1,0 +1,31 @@
+Package: spatialeye
+Version: 1.0
+Depends:
+  shiny,
+  shinythemes,
+  shinyBS,
+  DESeq2,
+  ggplot2,
+  AnnotationDbi,
+  org.Hs.eg.db,
+  genefilter,
+  ggrepel,
+  dplyr,
+  tidyr,
+  scater,
+  scran,
+  edgeR,
+  png,
+  grid,
+  maps,
+  threejs,
+  leaflet,
+  leaflet.extras,
+  RColorBrewer,
+  pheatmap,
+  sp,
+  cowplot,
+  Rtsne
+Remotes:
+  bhaskarvk/leaflet.extras
+RoxygenNote: 6.0.1

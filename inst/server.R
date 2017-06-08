@@ -2505,7 +2505,7 @@ observeEvent(input$ApplyBatchCorrButton, {
       selectedData = input$SpatialEyeDataSetChooserInput
       }
       sce = sceObjs[[as.numeric(selectedData)]]
-      urlImg = paste(selectedData,"/{z}/{x}/{y}.png", sep="")
+      urlImg = paste("tiles", selectedData, "{z}/{x}/{y}.png", sep="/")
       print(urlImg)
       
       
