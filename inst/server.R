@@ -38,11 +38,11 @@ library(Rtsne)
 options(shiny.maxRequestSize=150*1024^2) 
 
 #OBS OBS OBS just temp commented ! FOR TESTING, UNCOMMENT THIS LATER !
-sceObjs <<- list() #Global variable for saving of all sceObjects
-sceObjsPaths <<- list()
-spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
-spotDataObjsPaths <<- list()
-imgScaleObjs <<- list()
+#sceObjs <<- list() #Global variable for saving of all sceObjects
+#sceObjsPaths <<- list()
+#spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
+#spotDataObjsPaths <<- list()
+#imgScaleObjs <<- list()
 
 
 shinyServer(function(input,output, session) {
@@ -212,6 +212,7 @@ observeEvent(input$UpdateFilters, {
     
   output$filterPlot1 <- renderPlot({
     
+    
     slider1 = input$filterPlot1_slider
     ggtest = ggplot(data=pData(sce), aes(x=total_counts/1e3), colour="#faebd7")+
       geom_histogram(binwidth=0.1, colour="#faebd7", position="dodge")+ylab("Nr of ST-spots")+xlab("Library sizes (tousands)")+
@@ -230,7 +231,7 @@ observeEvent(input$UpdateFilters, {
       panel.grid.major = element_blank(),
       legend.position = "bottom")
     ggtest
-})#, bg = "transparent")
+})
 
   
   output$filterPlot2 <- renderPlot({
@@ -436,10 +437,22 @@ observeEvent(input$ClusterButton, {
 })
   
   
-  observeEvent(input$performClusterButton, {
+observeEvent(input$performClusterButton, {
+    
+    inputCheck <- tryCatch(
+      input$clusterDataSetChooserCheckBox,
+      error = function(e) {
+        output$clusterMsgOutput = renderText({
+          HTML(paste(tags$span(style="color:red", e), sep = ""))
+        })
+        return(NULL)
+      }
+    )
+    
+    if (!is.null(inputCheck)){
     
     withProgress(message =paste("Clustering..."), { #Progress bar START
-    
+
     #if multiple data sets -> merge
     if (length(input$clusterDataSetChooserCheckBox)>1){
       sce <- mergeSCE(as.numeric(input$clusterDataSetChooserCheckBox)) #function returns merged data sets
@@ -447,6 +460,8 @@ observeEvent(input$ClusterButton, {
     else{
       sce <- sceObjs[[as.numeric(input$clusterDataSetChooserCheckBox)]]
     }
+    
+    if (dim(sce)[[1]]>2){
     
     #we now have a sce data set, next step choose cluster method and eventual set min.sizes etc
     
@@ -487,8 +502,16 @@ observeEvent(input$ClusterButton, {
       }
 
       incProgress(detail = paste("Done!")) #Progress bar END
-      Sys.sleep(1)}) 
+      Sys.sleep(1)}
+      else{
+        output$clusterMsgOutput = renderUI({
+          HTML(paste(tags$span(style="color:red", "Data set to small"), sep = ""))
+        })
+      }
     })
+    }
+    })
+
   
 
   # -------------- Cluster Plots ---
@@ -557,10 +580,21 @@ observeEvent(input$ClusterButton, {
   
   #size factor summary
 observeEvent(input$sizefactorB, {
+  
+  inputCheck <- tryCatch(
+    input$sceNormCheckBox,
+    error = function(e) {
+      output$NormalizeMsgOutput = renderText({
+        HTML(paste(tags$span(style="color:red", e), sep = ""))
+      })
+      return(NULL)
+    }
+  )
+  
+  if (!is.null(inputCheck)){
+  
   positive = input$forcePositive
   withProgress(message =paste("Computing size factors"), { #Progress bar START
-    
-    print(input$NormSizesInput)
     
   if (input$NormSizesInput=="NA"){ # +++++ If no sizes are set
       
@@ -657,13 +691,19 @@ observeEvent(input$sizefactorB, {
         
         incProgress(detail = paste("Done!")) #Progress bar END
         Sys.sleep(1)})
-  })
+  }else{
+    output$sizefactorSummary = renderUI({
+      HTML(paste(tags$span(style="color:red", "Data set to small"), sep = ""))
+    })
+  }
+})
   
   
   
   #Size factor plot
-  output$sizeFactorPlot <- renderPlot({
-    if (input$sizeFactorPlotB>0){
+output$sizeFactorPlot <- renderPlot({
+  
+    if (input$sizeFactorPlotB>0 && exists("sce_norm_tmp")){
       isolate({
     
             fit <- lm(sizeFactors(sce_norm_tmp) ~ sce_norm_tmp$total_counts, data=(sce_norm_tmp))
@@ -686,11 +726,17 @@ observeEvent(input$sizefactorB, {
                 legend.position = "bottom")
             ggSize
             })
+        }else{
+            output$NormalizeMsgOutput = renderUI({
+              HTML(paste(tags$span(style="color:red", "No size factors found"), sep = ""))
+            })
         }}, bg = "transparent")
       
 
-  #Check size factors
+#Check size factors
 observeEvent(input$checkNormB, {
+  
+  if (exists("sce_norm_tmp")){
   
   sizeFactorsOfZero = length(which(sizeFactors(sce_norm_tmp)==0))
   sizeFactorsNegative = length(which(sizeFactors(sce_norm_tmp)<0))
@@ -707,12 +753,19 @@ observeEvent(input$checkNormB, {
             cat("Size Factors look ok")
           }
   })
-  })
+  }else{
+    output$NormalizeMsgOutput = renderUI({
+      HTML(paste(tags$span(style="color:red", "No data set chosen"), sep = ""))
+    })
+  }
+})
   
 
 #Remove Spots which have non positive size factors
 
 observeEvent(input$removeSFB, {
+
+if(exists("sce_norm_tmp")){
   
   badSF = length(which(sizeFactors(sce_norm_tmp)<=0))
   print(names(which(sizeFactors(sce_norm_tmp)<=0)))
@@ -722,7 +775,7 @@ observeEvent(input$removeSFB, {
   output$removeSF = renderPrint({
     cat(paste(badSF, " ST-features removed", sep=""))
       })
-    
+}
 })
   
  
@@ -732,7 +785,18 @@ observeEvent(input$normalizeB, {
   
 
         #Normalize
-        sce_norm_tmp = normalise(sce_norm_tmp)
+        inputCheck <- tryCatch(
+          sce_norm_tmp = normalise(sce_norm_tmp),
+        error = function(e) {
+          output$NormalizeMsgOutput = renderUI({
+            HTML(paste(tags$span(style="color:red", e), sep = ""))
+          })
+        return(NULL)
+        }
+        )
+        
+        if (!is.null(inputCheck)){
+        
         
         #Roll back to sceObj global
         datasets = unique(pData(sce_norm_tmp)$DataSet)
@@ -748,6 +812,7 @@ observeEvent(input$normalizeB, {
           }
         
         output$normalizationDone = renderPrint({HTML(paste("Done"), sep = "")})
+        }
 })
         
 #Info
@@ -776,15 +841,18 @@ observeEvent(input$QCButton, {
   })
 
 observeEvent(input$insideOutsideButton, {
-  
+
   withProgress(message ="Running ...", { #Progress bar START
   
   ggInsideList <<- list()
   ggInside2List <<- list()
   qcTable <<- list()
+  noGoVar <<- 1
   
   for (i in 1:length(sceObjs)){
     sce = sceObjs[[i]]
+    if (dim(sce)[[2]]>1){
+      noGoVar <<- 0
     #just consider the spots which we have data from
     spot_data = spotDataObjs[[i]]
     spot_data = spot_data[which(spot_data$barcode %in% colnames(sce)),]
@@ -855,6 +923,7 @@ observeEvent(input$insideOutsideButton, {
         panel.grid.major = element_blank(),
         legend.position = "bottom")
     
+    }
   }
   
   incProgress(detail = paste("Completed!")) #Progress bar END
@@ -874,11 +943,20 @@ observeEvent(input$insideOutsideButton, {
 })
 
 observeEvent(input$qcPlotsAndTableButton, {
+  inputCheck <- tryCatch(
+    input$qcCheckSelectionInput,
+    error = function(e) {
+      output$NormalizeMsgOutput = renderText({
+        HTML(paste(tags$span(style="color:red", e), sep = ""))
+      })
+      return(NULL)
+    }
+  )
+  
+  if (!is.null(inputCheck) && noGoVar==0){
   #Create data table output
   outputTable = data.frame("Data set" = numeric(), "Tot. inside"=numeric(), "Tot. outside"=numeric(), "Transcript/spot inside"=numeric(), "Transcript/spot outside"=numeric())
-  print(input$qcCheckSelectionInput)
   for (i in 1:length(input$qcCheckSelectionInput)){
-    print(i)
     datasetNr = input$qcCheckSelectionInput[i]
     dfRow = qcTable[[i]]
     dfRow = cbind(datasetNr, dfRow)
@@ -901,7 +979,7 @@ observeEvent(input$qcPlotsAndTableButton, {
   output$qcInsideOutsidePlots2 = renderPlot({
     plot_grid(plotlist=ggInside2)
   }, bg="#2E3337")
-  
+  }
 })
 
 

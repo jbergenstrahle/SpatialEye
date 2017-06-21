@@ -225,11 +225,11 @@ tabPanel("Data Processing",
                             
                      column(6,
                    plotOutput("filterPlot1"),
-                   sliderInput("filterPlot1_slider", "Library size per ST-Spot", min=0, max=20, 
-                               value=5, step = 1),
+                   numericInput("filterPlot1_slider", "Library size per ST-Spot", min=0.00001, max=NA, 
+                               value=5),
                    plotOutput("filterPlot2"),
-                   sliderInput("filterPlot2_slider", "Nr of expressed genes / spot", min=0, max=15000, 
-                               value=500, step = 500)
+                   numericInput("filterPlot2_slider", "Nr of expressed genes / spot", min=1, max=NA, 
+                               value=500)
                      )
                    )),
            # ClusterTab -----    
@@ -264,7 +264,9 @@ tabPanel("Data Processing",
                               p("Obs, only spearman avaiable atm"),
                               uiOutput("clusterDataSetPlot"),
                               actionButton("clusterArray_plotB", "Show clusters on array"),
-                              plotOutput("clusterArray_plot")
+                              plotOutput("clusterArray_plot"),
+                              br(),
+                              uiOutput("clusterMsgOutput")
                      
                      )
                    )),
@@ -305,7 +307,8 @@ tabPanel("Data Processing",
                             checkboxInput("forcePositive", "Force positive values of size factors"),
                             br(),
                             actionButton("sizefactorB", "Compute size factors"),
-                            verbatimTextOutput("sizefactorSummary")
+                            verbatimTextOutput("sizefactorSummary"),
+                            uiOutput("NormalizeMsgOutput")
                             
                    )),
                    fluidRow(
