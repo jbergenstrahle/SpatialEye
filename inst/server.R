@@ -37,7 +37,6 @@ library(Rtsne)
 #biocLite()
 options(shiny.maxRequestSize=150*1024^2) 
 
-#OBS OBS OBS just temp commented ! FOR TESTING, UNCOMMENT THIS LATER !
 #sceObjs <<- list() #Global variable for saving of all sceObjects
 #sceObjsPaths <<- list()
 #spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
@@ -51,6 +50,18 @@ shinyServer(function(input,output, session) {
   
   
 # ----------------------------- DATA INPUT -----------------------------
+observeEvent(input$resetDatasets,{
+    sceObjs <<- list() #Global variable for saving of all sceObjects
+    sceObjsPaths <<- list()
+    spotDataObjs <<- list() #Global variable for saving spot data associated with each data set
+    spotDataObjsPaths <<- list()
+    imgScaleObjs <<- list()
+    
+    output$resetDatasetsMsg <- renderUI({
+      HTML(paste("resetted"))
+    })
+})
+  
   output$countInputs=renderUI({
     html_ui = " "
     for (i in 1:input$nfiles){
@@ -1023,7 +1034,7 @@ output$downloadQCabundPlot <- downloadHandler(
 
   
   
-  # ------------------------ HVGs ------
+# ------------------------ HVGs ------
       
   observeEvent(input$HVGButton,{
     
@@ -1039,6 +1050,17 @@ output$downloadQCabundPlot <- downloadHandler(
   
   
 observeEvent(input$RunHVG, {
+  
+  inputCheck <- tryCatch(
+    input$sceHVGSelect,
+    error = function(e) {
+      HTML(paste(tags$span(style="color:red", e), sep = ""))
+      return(NULL)
+    }
+  )
+  
+  if (!is.null(inputCheck)){
+  
     
     print(input$sceHVGSelect)
     
@@ -1069,8 +1091,8 @@ observeEvent(input$RunHVG, {
   output$HVGParametersSet = renderText({
     print("Parameters Set")
   })
-  
-  })
+  }
+})
 
 observeEvent(input$hvgFollowUpQCheckbox, {
      sce_tmp_hvg_global <<-  sce_tmp_hvg_global[, which(pData(sce_tmp_hvg_global)$selectionID %in% input$hvgFollowUpQCheckbox) ]
@@ -1079,9 +1101,24 @@ observeEvent(input$hvgFollowUpQCheckbox, {
   
     
     
-  observeEvent(input$trendFitB, {
-    var.fit <- trendVar(sce_tmp_hvg_global, trend="loess", use.spikes=FALSE, span=0.2)
-    var.out <- decomposeVar(sce_tmp_hvg_global, var.fit)
+observeEvent(input$trendFitB, {
+  
+  var.fit <- tryCatch(
+    trendVar(sce_tmp_hvg_global, trend="loess", use.spikes=FALSE, span=0.2),
+    error = function(e) {
+      HTML(paste(tags$span(style="color:red", e), sep = ""))
+      return(NULL)
+    }
+  )
+  var.out <- tryCatch(
+    decomposeVar(sce_tmp_hvg_global, var.fit),
+    error = function(e) {
+      HTML(paste(tags$span(style="color:red", e), sep = ""))
+      return(NULL)
+    }
+  )
+    
+    if (!is.null(var.fit) && !is.null(var.out)){
     
     hvg.out <- var.out[which(var.out$FDR <= input$hvgFDRInput & var.out$bio >= input$hvgBioInput),]
     hvg.out <- hvg.out[order(hvg.out$bio, decreasing=TRUE),] 
@@ -1096,11 +1133,12 @@ observeEvent(input$hvgFollowUpQCheckbox, {
     output$HVG_table = renderDataTable({
       hvg.out
     })
-  })
+    }
+})
   
   
   
-  # ------------------------ Heatmaps -------------
+# ------------------------ Heatmaps -------------
   
 observeEvent(input$HEATMAPButton,{
     
@@ -1204,7 +1242,7 @@ observeEvent(input$HeatMapPlotButton, {
   
 })
 
-  # ------------------- DIM REDUCTION SECTION ------
+# ------------------- DIM REDUCTION SECTION ------
   
 observeEvent(input$DIMRedButton,{
     
@@ -1288,6 +1326,16 @@ observeEvent(input$dimRedInputType, {
 })
   
 observeEvent(input$dimPlot, {
+  
+  inputCheck <- tryCatch(
+    input$DimRedSelect,
+    error = function(e) {
+        HTML(paste(tags$span(style="color:red", e), sep = ""))
+      return(NULL)
+    }
+  )
+  
+  if (!is.null(inputCheck)){
 
   #if multiple data sets -> merge
   if (length(input$DimRedSelect)>1){
@@ -1436,7 +1484,7 @@ observeEvent(input$dimPlot, {
     plot_grid(plotlist=plotListArray)
   }, bg = "transparent")
   }
-
+}
 })
 
 #Add feature to remove selectionID after plotting DimRed
@@ -1505,7 +1553,7 @@ observeEvent(input$RemoveSelectionIDfromDimRed, {
   
   
   
-  # ------------------ DE SECTION ----------------------------------------------------------------------
+# ------------------ DE SECTION ----------------------------------------------------------------------
   
   output$DEPoolStrategyInfoText = renderUI({
     HTML("<p> The pooling strategy works in the following manner: </p>
@@ -1589,6 +1637,15 @@ observeEvent(input$DEButton,{
 })
 
 observeEvent(input$dataConfigDE, {
+  inputCheck <- tryCatch(
+    input$sceDESelect,
+    error = function(e) {
+      HTML(paste(tags$span(style="color:red", e), sep = ""))
+      return(NULL)
+    }
+  )
+  
+  if (!is.null(inputCheck)){
   #if multiple data sets -> merge
    if (length(input$sceDESelect)>1){
      sce_DE <<- mergeSCE(as.numeric(input$sceDESelect)) #function returns merged data sets
@@ -1620,7 +1677,7 @@ observeEvent(input$dataConfigDE, {
   
   output$dataConfigDEConfirm = renderText(print("Data config confirmed"))
 
-   
+  } 
 })
 
 
@@ -1800,19 +1857,34 @@ observeEvent(input$useDEDesign, {
 # 3. Running DE =======================
 
 observeEvent(input$DESeq2RUN,{
+  
+    
+  
     withProgress(message ="Running DESeq2 ...", { #Progress bar START
     
-    
-
-    dds <- convertTo(DE_sce, type="DESeq2", pData.col = input$useDEDesign)
-    
+      dds <- tryCatch(
+        convertTo(DE_sce, type="DESeq2", pData.col = input$useDEDesign),
+        error = function(e) {
+            HTML(paste(tags$span(style="color:red", e), sep = ""))
+          return(NULL)
+        }
+      )
+  
+    if(!is.null(dds)){
+      
     VariablesToUse = input$useDEDesign
     print(paste("VariableToUse: ", VariablesToUse))
     
     VariableOfInterest = input$DEVariableOfInterest
     VariablesToUse = as.factor(VariablesToUse)
-    VariablesToUse = relevel(VariablesToUse, VariableOfInterest)
-    print(paste("Releveled VariableToUse: ", VariablesToUse))
+    VariablesToUse <- tryCatch(
+      relevel(VariablesToUse, VariableOfInterest),
+      error = function(e) {
+        HTML(paste(tags$span(style="color:red", e), sep = ""))
+        return(NULL)
+      }
+    )
+    if(!is.null(VariablesToUse)){
 
     #convert to factors for DE design
     for (i in 1:length(input$useDEDesign)){
@@ -1880,7 +1952,8 @@ observeEvent(input$DESeq2RUN,{
         print(input$DEConrastCheckBoxGroupInput1)
       })
     }
-    
+    }
+    }
     incProgress(detail = paste("DE completed!")) #Progress bar END
     Sys.sleep(1)})
     print("DE Done")

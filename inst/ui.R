@@ -131,6 +131,7 @@ tabPanel("Data Processing",
            bsModal("bsModal_data", title="Data upload", trigger="DataButton",
                    size = "large",
                    sidebarPanel(
+                     p("Use the reset button for each new sets of data you work with"),
                      p("Upload ST-output files after running the RNA-seq pipeline"),
                      p("The user can upload multiple data sets which get stored as seperate R-objects
                         (they can later me pooled an manipulated togheter)"),
@@ -151,6 +152,10 @@ tabPanel("Data Processing",
                    ),
                     sidebarPanel(
                               htmlOutput("uploadedData")
+                    ),
+                   sidebarPanel(
+                              actionButton("resetDatasets", "Reset Data Set(s)", icon=icon("warning", lib="font-awesome")),
+                              htmlOutput("resetDatasetsMsg")
                    )),
           # Filter -----
            bsModal("bsModal_filter", title="Filter options", trigger="FilterButton", 
