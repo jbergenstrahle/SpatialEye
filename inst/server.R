@@ -119,13 +119,15 @@ observeEvent(input$resetDatasets,{
           pData(sce)$selectionSpotsInput = rep(0, ncol(sce))
           selectionSpotsInputVector <<- rep(0, ncol(sce))
           pData(sce)$AnnotationNameDataSet = "dummy"
-    
+          
+          if (input$customNamesCheckBoxInput == FALSE){
           symbols = mapIds(org.Hs.eg.db,
                       keys=row.names(sce),
                       column="SYMBOL",
                       keytype="ENSEMBL",
                       multiVals="first")
           rownames(sce) = make.names(symbols, unique=TRUE)
+          }
           
           sceObjs[[n]] <<- sce
           
@@ -2598,7 +2600,7 @@ observeEvent(input$ApplyBatchCorrButton, {
           sce = sce[, order(colnames(sce))] #string sorted
           spot_data = spot_data[order(spot_data$barcode), ]
           #convert to img coordinates
-          spot_data = spot_data[, c(3,4,5)] #just use column V3,V4,v5 (V5 = inside/outside tissue - yes/true)
+          spot_data = spot_data[, c(5,6,7)] #just use column V5,V6,v7 (V7 = inside/outside tissue - yes/true)
           #pixel-coords are stored in column V3,V4 in output from spot-detection tool
           scalingFactorImg = 256/max(spot_data_dims)
           
