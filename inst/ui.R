@@ -155,8 +155,7 @@ tabPanel("Data Processing",
                     ),
                    sidebarPanel(
                               actionButton("resetDatasets", "Reset Data Set(s)", icon=icon("warning", lib="font-awesome")),
-                              htmlOutput("resetDatasetsMsg"),
-                              checkboxInput("customNamesCheckBoxInput", "Use custom names", value=FALSE)
+                              htmlOutput("resetDatasetsMsg")
                    )),
           # Filter -----
            bsModal("bsModal_filter", title="Filter options", trigger="FilterButton", 

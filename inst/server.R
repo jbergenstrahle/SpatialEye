@@ -120,20 +120,28 @@ observeEvent(input$resetDatasets,{
           selectionSpotsInputVector <<- rep(0, ncol(sce))
           pData(sce)$AnnotationNameDataSet = "dummy"
           
-          if (input$customNamesCheckBoxInput == FALSE){
-          symbols = mapIds(org.Hs.eg.db,
-                      keys=row.names(sce),
-                      column="SYMBOL",
-                      keytype="ENSEMBL",
-                      multiVals="first")
+          
+            symbols <- tryCatch(mapIds(org.Hs.eg.db,
+                               keys=row.names(sce),
+                               column="SYMBOL",
+                               keytype="ENSEMBL",
+                               multiVals="first"),
+              error = function(e) { return(NULL)
+  
+              }
+            )
+        
+          if (!is.null(symbols)){
           rownames(sce) = make.names(symbols, unique=TRUE)
           }
+          
           
           sceObjs[[n]] <<- sce
           
           #load spot data
-              spots = read.table(spotDataObjsPaths[[n]], skip=1)
-              imgScale = readLines(spotDataObjsPaths[[n]], n=1)
+              spots = read.table(spotDataObjsPaths[[n]], skip=2)
+              imgScale = readLines(spotDataObjsPaths[[n]], n=2)
+              imgScale = imgScale[2]
               spots$barcode = paste(spots$V1, spots$V2, sep="x")
               spotDataObjs[[n]] <<- spots #save to global spot data storage
               imgSplit = strsplit(imgScale, "\t")
@@ -2604,8 +2612,8 @@ observeEvent(input$ApplyBatchCorrButton, {
           #pixel-coords are stored in column V3,V4 in output from spot-detection tool
           scalingFactorImg = 256/max(spot_data_dims)
           
-          spot_data$V3 = (spot_data$V3*scalingFactorImg)
-          spot_data$V4 = (spot_data_dims[2] - spot_data$V4)*scalingFactorImg
+          spot_data$V5 = (spot_data$V5*scalingFactorImg)
+          spot_data$V6 = (spot_data_dims[2] - spot_data$V6)*scalingFactorImg
           print(head(spot_data))
           colnames(spot_data) = c("x", "y", "barcode")
           pData(sce)$spot_coord_x = as.numeric(spot_data$x)
