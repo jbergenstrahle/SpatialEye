@@ -333,7 +333,7 @@ observeEvent(input$insideOutsideTissueFilterButton, {
     #sort to read in spot data into sce object
     sce = sce[, order(colnames(sce))] #string sorted
     spot_data = spot_data[order(spot_data$barcode), ]
-    spot_data = spot_data[, 5] #(V5 = inside/outside tissue - yes/true)
+    spot_data = spot_data[, 7] #(V7 = inside/outside tissue - yes/true)
     pData(sce)$insideTissue = spot_data
     before = dim(sce)[2]
     sce = sce[, which(pData(sce)$insideTissue == 1)]
